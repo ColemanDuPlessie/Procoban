@@ -9,19 +9,12 @@ box_tile_padding = 3
 player_size = 40
 target_size = 30
 target_thickness = 5
-grid_W = 8
-grid_H = 8
 
 floor_color = "#e0c890"
 wall_color = "#206000"
 box_color = "#603030"
 target_color = "#404090"
 player_color = "#a04040"
-
-tk = Tk()
-tk.title("Procoban Prototype")
-canvas = Canvas(tk, width=canvas_padding*2+grid_W*tile_size, height=canvas_padding*2+grid_H*tile_size, bg=floor_color)
-canvas.pack()
 
 DIRECTIONS = ((0, 1), (1, 0), (0, -1), (-1, 0))
 
@@ -43,7 +36,7 @@ class Board:
         self.raw_tiles = board
         
     def set_boxes(self, boxes_list):
-        self.boxes_coords = boxes_list
+        self.boxes_coords = set(boxes_list)
     
     def set_boxes_solved(self):
         self.boxes_coords = set()
@@ -170,7 +163,7 @@ def repeated_random_reverse_push(board, n_times, lines=True):
     while n_successful_pushes < n_times:
         options = get_options(board)-set(past_pushes+failed_pushes)
         if len(options) == 0:
-            print(f"flag {len(failed_pushes)}")
+            print(f"flag {len(failed_pushes)}, only {n_successful_pushes} succeeded")
             board.player_coords = past_pushes[-1][0]
             board.boxes_coords.remove(past_pushes[-1][0])
             board.boxes_coords.add(past_pushes[-1][1])
@@ -186,35 +179,53 @@ def repeated_random_reverse_push(board, n_times, lines=True):
     board.player_coords = random.choice(tuple(pushless_flood_fill(board, board.player_coords)))
     return past_pushes
 
-game = Board(grid_W, grid_H)
-
-random_gen_board_badly(game, 4)
-
-game.set_boxes_solved()
-game.set_player((1, 1))
-repeated_random_reverse_push(game, 8)
-
-print(get_legal_reverse_pushes(game))
-
-def onKeyPress(event):
-    if event.char == 'w':
-        game.move_player_up()
-    elif event.char == 'a':
-        game.move_player_left()
-    elif event.char == 's':
-        game.move_player_down()
-    elif event.char == 'd':
-        game.move_player_right()
-    game.check_win()
-
-tk.bind('<KeyPress>', onKeyPress)
-while not game.has_won:
-    sleep(0.01)
+if __name__ == "__main__":
+    
+    from tile_based_boardgen import gen_puzzle # This has to be here to avoid a circular import
+    
+    grid_W = 11
+    grid_H = 11
+    num_boxes = 3
+    num_push_lines = 6
+    gen_structured = True
+    
+    tk = Tk()
+    tk.title("Procoban Prototype")
+    canvas = Canvas(tk, width=canvas_padding*2+grid_W*tile_size, height=canvas_padding*2+grid_H*tile_size, bg=floor_color)
+    canvas.pack()
+    
+    game = Board(grid_W, grid_H)
+    
+    if gen_structured:
+        gen_puzzle(game, num_boxes, num_push_lines)
+    else:
+        random_gen_board_badly(game, num_boxes)
+        
+        game.set_boxes_solved()
+        game.set_player((1, 1))
+        repeated_random_reverse_push(game, num_push_lines)
+    
+    print(get_legal_reverse_pushes(game))
+    
+    def onKeyPress(event):
+        if event.char == 'w':
+            game.move_player_up()
+        elif event.char == 'a':
+            game.move_player_left()
+        elif event.char == 's':
+            game.move_player_down()
+        elif event.char == 'd':
+            game.move_player_right()
+        game.check_win()
+    
+    tk.bind('<KeyPress>', onKeyPress)
+    while not game.has_won:
+        sleep(0.01)
+        tk.update_idletasks()
+        tk.update()
+        canvas.delete("all")
+        game.draw(canvas)
     tk.update_idletasks()
     tk.update()
-    canvas.delete("all")
-    game.draw(canvas)
-tk.update_idletasks()
-tk.update()
-sleep(2)
-tk.destroy()
+    sleep(2)
+    tk.destroy()
