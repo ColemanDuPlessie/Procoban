@@ -110,8 +110,8 @@ def find_farthest_state(board):
     best_state = initial_state.get_farthest_known_state()
     return (best_state.box_coords, best_state.player_coords)
 
-def gen_puzzle_optimal(board, n_boxes):
-    random_gen_without_goals(board)
+def gen_puzzle_optimal(board, n_boxes, openness_bias=lambda x: 0.0):
+    random_gen_without_goals(board, openness_bias)
     randomly_place_goals_and_player(board, n_boxes)
     board.set_boxes_solved()
     start_state = find_farthest_state(board)

@@ -131,6 +131,8 @@ if TEMPLATES_IS_SET: TEMPLATES = set(TEMPLATES)
 
 TEMPLATES_TUPLE = tuple(TEMPLATES)
 
+TEMPLATES_OPENNESS = [sum(row[1:-1].count(0) for row in template[1:-1]) for template in TEMPLATES_TUPLE]
+
 def check_adjacencies_raw(raw_board, coords):
     ans = []
     height = len(raw_board)
@@ -148,18 +150,24 @@ def check_adjacencies(board, coords):
     """
     return check_adjacencies_raw(board.raw_tiles, coords)
 
-def random_gen_without_goals(board_object): # TODO check continuity
+def random_gen_without_goals(board_object, openness_weight=lambda x: 0):
     assert board_object.width % 3 == 2
     assert board_object.height % 3 == 2
     tile_width = board_object.width // 3
     tile_height = board_object.height // 3
     board = [[-1 for i in range(board_object.width)] for j in range(board_object.height)]
+    weights = tuple(1+openness_weight(value) for value in TEMPLATES_OPENNESS)
     
     for row in range(tile_height):
         for col in range(tile_width):
             template_options = list(TEMPLATES_TUPLE)
+            weight_options = list(weights)
             while len(template_options) != 0: # this mess of for-else stuff is not elegant
-                template = template_options.pop(random.choice(range(len(template_options))))
+                template = random.choices(population=template_options,
+                                          weights=weight_options,
+                                          k=1)[0]
+                weight_options.pop(template_options.index(template))
+                template_options.remove(template)
                 # print(f"Attempting to fill template in row {row}, column {col}")
                 tentative_board = deepcopy(board)
                 for row_offset in range(5):
@@ -170,7 +178,7 @@ def random_gen_without_goals(board_object): # TODO check continuity
                             # print(f"Tile {col*3+col_offset}, {row*3+row_offset} failed!")
                             # print(f"Expected value: {template_value}, Actual value: {board_value}")
                             break # This breaks both loops because of the else-continue-break clause
-                        else:
+                        elif board_value == -1:
                             tentative_board[row*3+row_offset][col*3+col_offset] = template_value
                     else:
                         continue
@@ -195,11 +203,11 @@ def random_gen_without_goals(board_object): # TODO check continuity
                         available_spaces = pushless_flood_fill(board_object, (col_idx, row_idx))
                     if (col_idx, row_idx) not in available_spaces: # Board not continuous
                         print(f"Failed to connect to tile ({col_idx}, {row_idx}). Retrying...")
-                        return random_gen_without_goals(board_object) # TODO this is not the right way to recurse
+                        return random_gen_without_goals(board_object, openness_weight) # TODO this is not the right way to recurse
                     if sum(check_adjacencies(board_object, (col_idx, row_idx))) >= 3: # Dead-end tile
                         if RECURSE_IF_DEAD_END:
                             print(f"Tile ({col_idx}, {row_idx}) is a dead end, and apparently that's boring. Retrying...")
-                            return random_gen_without_goals(board_object) # TODO this is not the right way to recurse
+                            return random_gen_without_goals(board_object, openness_weight) # TODO this is not the right way to recurse
                         else:
                             print(f"Tile ({col_idx}, {row_idx}) is a dead end. Fixing...")
                             board_perfect = False
@@ -216,8 +224,8 @@ def randomly_place_goals_and_player(board_object, num_goals):
         board_object.raw_tiles[goal[1]][goal[0]] = 2
     board_object.set_player(goals_plus_player[-1])
 
-def gen_puzzle(board, n_boxes, n_pushes):
-    random_gen_without_goals(board)
+def gen_puzzle(board, n_boxes, n_pushes, openness_bias=lambda x: 0.0):
+    random_gen_without_goals(board, openness_bias)
     randomly_place_goals_and_player(board, n_boxes)
     board.set_boxes_solved()
     repeated_random_reverse_push(board, n_pushes)

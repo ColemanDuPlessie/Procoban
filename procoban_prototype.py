@@ -185,11 +185,12 @@ if __name__ == "__main__":
     from principled_tree_search_setup import gen_puzzle_optimal
     
     grid_W = 11
-    grid_H = 11
+    grid_H = 8
     num_boxes = 4
     num_push_lines = 6
     gen_structured = True
     optimal_structure = True
+    openness_bias = lambda x: 0
     
     tk = Tk()
     tk.title("Procoban Prototype")
@@ -200,9 +201,9 @@ if __name__ == "__main__":
     
     if gen_structured:
         if optimal_structure:
-            gen_puzzle_optimal(game, num_boxes)
+            gen_puzzle_optimal(game, num_boxes, openness_bias)
         else:
-            gen_puzzle(game, num_boxes, num_push_lines)
+            gen_puzzle(game, num_boxes, num_push_lines, openness_bias)
     else:
         random_gen_board_badly(game, num_boxes)
         
