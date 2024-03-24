@@ -173,7 +173,7 @@ def repeated_random_reverse_push(board, n_times, lines=True):
         choice = random.choice(tuple(options)) # TODO BFS/DFS?
         board.player_coords = (min(1, max(-1, choice[1][0]-choice[0][0]))+choice[1][0], min(1, max(-1, choice[1][1]-choice[0][1]))+choice[1][1])
         board.boxes_coords.remove(choice[0])
-        board.boxes_coords.add(choice[1]) # TODO check if we can continue the reverse push. If we can, then maybe do that?
+        board.boxes_coords.add(choice[1])
         past_pushes.append((choice[1], choice[0]))
         n_successful_pushes += 1
     board.player_coords = random.choice(tuple(pushless_flood_fill(board, board.player_coords)))
@@ -181,13 +181,15 @@ def repeated_random_reverse_push(board, n_times, lines=True):
 
 if __name__ == "__main__":
     
-    from tile_based_boardgen import gen_puzzle # This has to be here to avoid a circular import
+    from tile_based_boardgen import gen_puzzle # These have to be here to avoid a circular import
+    from principled_tree_search_setup import gen_puzzle_optimal
     
     grid_W = 11
     grid_H = 11
-    num_boxes = 3
+    num_boxes = 4
     num_push_lines = 6
     gen_structured = True
+    optimal_structure = True
     
     tk = Tk()
     tk.title("Procoban Prototype")
@@ -197,7 +199,10 @@ if __name__ == "__main__":
     game = Board(grid_W, grid_H)
     
     if gen_structured:
-        gen_puzzle(game, num_boxes, num_push_lines)
+        if optimal_structure:
+            gen_puzzle_optimal(game, num_boxes)
+        else:
+            gen_puzzle(game, num_boxes, num_push_lines)
     else:
         random_gen_board_badly(game, num_boxes)
         
