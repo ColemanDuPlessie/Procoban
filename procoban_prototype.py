@@ -190,7 +190,7 @@ if __name__ == "__main__":
     num_push_lines = 6
     gen_structured = True
     optimal_structure = True
-    openness_bias = lambda x: 0
+    openness_bias = lambda x: -0.02*x
     
     tk = Tk()
     tk.title("Procoban Prototype")
@@ -210,8 +210,6 @@ if __name__ == "__main__":
         game.set_boxes_solved()
         game.set_player((1, 1))
         repeated_random_reverse_push(game, num_push_lines)
-    
-    print(get_legal_reverse_pushes(game))
     
     def onKeyPress(event):
         if event.char == 'w':

@@ -1,4 +1,5 @@
 import random
+from copy import deepcopy
 from procoban_prototype import DIRECTIONS
 from tile_based_boardgen import randomly_place_goals_and_player, random_gen_without_goals
 
@@ -39,7 +40,7 @@ class SetupBoardState:
     def get_all_states(self):
         return SetupBoardState.all_states[self.board]
     
-    def __init__(self, board, box_coords=None, player_coords=None, distance=0):
+    def __init__(self, board, box_coords=None, player_coords=None, distance=0, parent=None):
         self.board = board # A board object. Note that we ONLY use the map, not the box or player coords
         self.distance = distance # The number of reverse push lines necessary to get to this state
         if self.board not in SetupBoardState.all_states.keys():
@@ -55,8 +56,12 @@ class SetupBoardState:
         else:
             self.player_coords = frozenset(pushless_flood_fill_separate_boxes(board, player_coords, self.box_coords))
         self.get_all_states()[(self.box_coords, self.player_coords)] = self
+        self.child_states = set()
+        self.parent_states = set()
+        if parent != None: self.parent_states.add(parent)
     
-    def distance_found(self, new_dist):
+    def parent_found(self, parent, new_dist):
+        self.parent_states.add(parent)
         if new_dist < self.distance: self.distance = new_dist
     
     def __hash__(self):
@@ -75,7 +80,6 @@ class SetupBoardState:
         second element is all child states not seen before
         """
         push_options = get_legal_reverse_push_lines_separate_boxes(self.board, next(iter(self.player_coords)), self.box_coords)
-        states = set()
         new_states = set()
         for choice in push_options:
             box_coords = set(self.box_coords)
@@ -86,16 +90,16 @@ class SetupBoardState:
             player_coords = frozenset(pushless_flood_fill_separate_boxes(self.board, player_coords, box_coords))
             if (box_coords, player_coords) in self.get_all_states():
                 found_state = self.get_all_states()[(box_coords, player_coords)]
-                found_state.distance_found(self.distance+1)
-                states.add(found_state)
+                found_state.parent_found(self, self.distance+1)
+                self.child_states.add(found_state)
             else:
-                discovered_state = SetupBoardState(self.board, box_coords, player_coords, self.distance+1)
-                states.add(discovered_state)
+                discovered_state = SetupBoardState(self.board, box_coords, player_coords, self.distance+1, parent=self)
+                self.child_states.add(discovered_state)
                 new_states.add(discovered_state)
-        return (states, new_states)
+        return (set(self.child_states), new_states)
     
     def get_farthest_known_state(self):
-        assert self.distance == 0 # TODO generalize this?
+        assert self.distance == 0 # TODO generalize this
         return max(self.get_all_states().values(), key=lambda x: x.distance)
 
 def find_farthest_state(board):
@@ -108,6 +112,7 @@ def find_farthest_state(board):
         states_to_check.extend(current_state.get_child_states()[1])
         states_checked += 1
     best_state = initial_state.get_farthest_known_state()
+    print(f"This puzzle takes {best_state.distance} moves to solve. Good luck!")
     return (best_state.box_coords, best_state.player_coords)
 
 def gen_puzzle_optimal(board, n_boxes, openness_bias=lambda x: 0.0):
