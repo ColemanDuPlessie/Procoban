@@ -106,13 +106,14 @@ def find_farthest_state(board):
     initial_state = SetupBoardState(board)
     states_to_check = [initial_state]
     states_checked = 0
+    print("Generating...")
     while len(states_to_check) != 0:
-        print(f"Now checking state {states_checked}")
+        # print(f"Now checking state {states_checked}")
         current_state = states_to_check.pop(0)
         states_to_check.extend(current_state.get_child_states()[1])
         states_checked += 1
     best_state = initial_state.get_farthest_known_state()
-    print(f"This puzzle takes {best_state.distance} moves to solve. Good luck!")
+    print(f"This puzzle takes {best_state.distance} moves to solve (a move consists of pushing one box any number of tiles in a straight line). Good luck!")
     return (best_state.box_coords, best_state.player_coords)
 
 def gen_puzzle_optimal(board, n_boxes, openness_bias=lambda x: 0.0):
